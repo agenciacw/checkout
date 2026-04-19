@@ -1,40 +1,41 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Pagamento Seguro - Agência CW</title>
-    <script>
-    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '26659273070332798');
-    fbq('track', 'PageView');
-    </script>
-    <style>body,html{margin:0;padding:0;height:100%;overflow:hidden;}iframe{width:100%;height:100vh;border:none;}</style>
-</head>
-<body>
-    <iframe id="tally-iframe" src="about:blank"></iframe>
-    <script>
-        async function carregar() {
-            const p = new URLSearchParams(window.location.search);
-            const v = p.get('valor') || '';
-            const fid = p.get('fbclid') || '';
-            const fbc = fid ? 'fb.1.' + Date.now() + '.' + fid : '';
-            const ua = navigator.userAgent.substring(0, 150);
-            
-            let ip = '';
-            try {
-                // Tenta pegar o IP rápido. Se falhar em 1s, ignora.
-                const controller = new AbortController();
-                setTimeout(() => controller.abort(), 1000);
-                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
-                const data = await res.json();
-                ip = data.ip;
-            } catch (e) { console.log("IP skip"); }
+<script>
+    function getCookie(name) {
+        let cookie = {};
+        document.cookie.split(';').forEach(function(el) {
+            let [key,value] = el.split('=');
+            cookie[key.trim()] = value;
+        })
+        return cookie[name];
+    }
 
-            // FBP vazio por enquanto (até a Meta liberar o domínio)
-            const url = `https://tally.so/r/MedLeX?valor=${v}&fbc=${fbc}&fbp=&ip=${ip}&ua=${encodeURIComponent(ua)}`;
-            document.getElementById('tally-iframe').src = url;
+    async function carregarTally() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const valor = urlParams.get('valor') || '';
+        const fbclid = urlParams.get('fbclid');
+        const fbc = fbclid ? 'fb.1.' + Date.now() + '.' + fbclid : '';
+        
+        // Tenta pegar o FBP. Se estiver vazio, espera 1 segundo e tenta de novo.
+        let fbp = getCookie('_fbp') || '';
+        if (!fbp) {
+            await new Promise(r => setTimeout(r, 1000));
+            fbp = getCookie('_fbp') || '';
         }
-        carregar();
-    </script>
-</body>
-</html>
+
+        const ua = navigator.userAgent.substring(0, 150);
+        let ip = '';
+        
+        try {
+            const response = await fetch('https://api.ipify.org?format=json');
+            const data = await response.json();
+            ip = data.ip;
+        } catch (e) { console.log("IP erro"); }
+
+        const tallyID = "MedLeX";
+        const finalURL = `https://tally.so/r/${tallyID}?valor=${valor}&fbc=${fbc}&fbp=${fbp}&ip=${ip}&ua=${encodeURIComponent(ua)}`;
+
+        document.getElementById('tally-iframe').src = finalURL;
+    }
+
+    // Dá 1 segundo pro Pixel do Facebook respirar antes de começar tudo
+    setTimeout(carregarTally, 1000);
+</script>
