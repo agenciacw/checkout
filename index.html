@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento Seguro - Dados Danúbio</title>
+    <style>
+        /* Estilo para o formulário ocupar a tela toda sem barras de rolagem extras */
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            height: 100%; 
+            width: 100%;
+            overflow: hidden; 
+            background-color: #f9fafb; /* Cor de fundo suave */
+        }
+        iframe { 
+            width: 100%; 
+            height: 100vh; 
+            border: none; 
+        }
+    </style>
+</head>
+<body>
+
+    <iframe id="tally-iframe" src="about:blank"></iframe>
+
+    <script>
+        window.onload = function() {
+            // 1. Captura os parâmetros da URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const valor = urlParams.get('valor') || ''; // Pega o valor do produto
+            const fbclid = urlParams.get('fbclid'); // ID de clique do Facebook Ads
+            
+            // 2. Formata o FBC (Identificador de Clique)
+            // O Facebook espera o formato fb.1.timestamp.id_do_clique
+            const fbc = fbclid ? 'fb.1.' + Date.now() + '.' + fbclid : '';
+
+            // 3. Captura o FBP (Identificador do Navegador) direto dos cookies
+            const getCookie = (name) => {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+            };
+            const fbp = getCookie('_fbp') || '';
+
+            // 4. Configurações do seu Tally
+            const tallyID = "MedLeX"; 
+            
+            // 5. Monta a URL final com todos os campos de rastreio
+            // Importante: os nomes valor, fbc e fbp devem ser IGUAIS aos Hidden Fields no Tally
+            const finalURL = `https://tally.so/r/${tallyID}?valor=${valor}&fbc=${fbc}&fbp=${fbp}`;
+
+            // 6. Injeta o link completo no Iframe para o cliente preencher
+            document.getElementById('tally-iframe').src = finalURL;
+        };
+    </script>
+</body>
+</html>
