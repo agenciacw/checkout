@@ -3,57 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pagamento Seguro - Dados Danúbio</title>
+    <title>Pagamento Seguro - Agência CW</title>
     <style>
-        /* Estilo para o formulário ocupar a tela toda sem barras de rolagem extras */
-        body, html { 
-            margin: 0; 
-            padding: 0; 
-            height: 100%; 
-            width: 100%;
-            overflow: hidden; 
-            background-color: #f9fafb; /* Cor de fundo suave */
-        }
-        iframe { 
-            width: 100%; 
-            height: 100vh; 
-            border: none; 
-        }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background-color: #f9fafb; }
+        iframe { width: 100%; height: 100vh; border: none; }
     </style>
 </head>
 <body>
-
     <iframe id="tally-iframe" src="about:blank"></iframe>
 
     <script>
-        window.onload = function() {
-            // 1. Captura os parâmetros da URL
+        async function carregarTally() {
             const urlParams = new URLSearchParams(window.location.search);
-            const valor = urlParams.get('valor') || ''; // Pega o valor do produto
-            const fbclid = urlParams.get('fbclid'); // ID de clique do Facebook Ads
             
-            // 2. Formata o FBC (Identificador de Clique)
-            // O Facebook espera o formato fb.1.timestamp.id_do_clique
+            // 1. Pega Valor e FBCLID da URL
+            const valor = urlParams.get('valor') || '';
+            const fbclid = urlParams.get('fbclid');
             const fbc = fbclid ? 'fb.1.' + Date.now() + '.' + fbclid : '';
 
-            // 3. Captura o FBP (Identificador do Navegador) direto dos cookies
-            const getCookie = (name) => {
-                const value = `; ${document.cookie}`;
-                const parts = value.split(`; ${name}=`);
-                if (parts.length === 2) return parts.pop().split(';').shift();
-            };
-            const fbp = getCookie('_fbp') || '';
+            // 2. Pega FBP do Cookie
+            const fbp = document.cookie.split('; ').find(row => row.startsWith('_fbp='))?.split('=')[1] || '';
 
-            // 4. Configurações do seu Tally
-            const tallyID = "MedLeX"; 
-            
-            // 5. Monta a URL final com todos os campos de rastreio
-            // Importante: os nomes valor, fbc e fbp devem ser IGUAIS aos Hidden Fields no Tally
-            const finalURL = `https://tally.so/r/${tallyID}?valor=${valor}&fbc=${fbc}&fbp=${fbp}`;
+            // 3. Pega o User Agent (Navegador/Dispositivo)
+            const ua = navigator.userAgent;
 
-            // 6. Injeta o link completo no Iframe para o cliente preencher
+            // 4. Busca o IP real do cliente usando uma API gratuita
+            let ip = '';
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                ip = data.ip;
+            } catch (e) { console.log("Erro ao pegar IP"); }
+
+            // 5. Monta a URL Final do Tally (MedLeX)
+            const tallyID = "MedLeX";
+            const finalURL = `https://tally.so/r/${tallyID}?valor=${valor}&fbc=${fbc}&fbp=${fbp}&ip=${ip}&ua=${encodeURIComponent(ua)}`;
+
+            // 6. Injeta no Iframe
             document.getElementById('tally-iframe').src = finalURL;
-        };
+        }
+
+        carregarTally();
     </script>
 </body>
 </html>
