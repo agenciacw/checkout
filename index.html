@@ -4,27 +4,48 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pagamento Seguro - Agência CW</title>
+
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '26659273070332798');
+    fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=26659273070332798&ev=PageView&noscript=1"
+    /></noscript>
     <style>
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background-color: #f9fafb; }
         iframe { width: 100%; height: 100vh; border: none; }
     </style>
 </head>
 <body>
+
     <iframe id="tally-iframe" src="about:blank"></iframe>
 
     <script>
         async function carregarTally() {
             const urlParams = new URLSearchParams(window.location.search);
+            
+            // 1. Valor e FBC (Vindo do clique do anúncio)
             const valor = urlParams.get('valor') || '';
             const fbclid = urlParams.get('fbclid');
             const fbc = fbclid ? 'fb.1.' + Date.now() + '.' + fbclid : '';
-            const fbp = document.cookie.split('; ').find(row => row.startsWith('_fbp='))?.split('=')[1] || '';
-            
-            // Pega o Navegador (UA) e encurta para não dar erro de URL muito longa
+
+            // 2. FBP (Vindo do Cookie que o Pixel acima acabou de criar)
+            const fbp = document.cookie.split('; ').find(row => row.trim().startsWith('_fbp='))?.split('=')[1] || '';
+
+            // 3. User Agent (Navegador)
             const ua = navigator.userAgent.substring(0, 150);
 
+            // 4. IP Real
             let ip = '';
-            // Tenta pegar o IP, mas se demorar mais de 1 segundo, ele desiste e carrega o resto
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 1000);
@@ -32,17 +53,18 @@
                 const data = await response.json();
                 ip = data.ip;
                 clearTimeout(timeoutId);
-            } catch (e) {
-                console.log("IP timeout ou bloqueado");
-            }
+            } catch (e) { console.log("Timeout IP"); }
 
+            // 5. Montagem da URL para o Tally MedLeX
             const tallyID = "MedLeX";
             const finalURL = `https://tally.so/r/${tallyID}?valor=${valor}&fbc=${fbc}&fbp=${fbp}&ip=${ip}&ua=${encodeURIComponent(ua)}`;
 
+            // 6. Carrega o formulário
             document.getElementById('tally-iframe').src = finalURL;
         }
 
-        carregarTally();
+        // Aguarda 500ms para garantir que o Pixel disparou o cookie antes de ler
+        setTimeout(carregarTally, 500);
     </script>
 </body>
 </html>
