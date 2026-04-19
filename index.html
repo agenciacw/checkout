@@ -21,11 +21,10 @@
     <iframe id="tally-iframe" src="about:blank"></iframe>
 
     <script>
-        // Função para caçar o cookie real do Facebook
         function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
+            const value = "; " + document.cookie;
+            const parts = value.split("; " + name + "=");
+            if (parts.length === 2) return parts.pop().split(";").shift();
             return "";
         }
 
@@ -37,34 +36,41 @@
             // FBC Real (se vier de anúncio) ou identificador de WhatsApp
             const fbc = fbclid ? `fb.1.${Date.now()}.${fbclid}` : `fb.1.${Date.now()}.whatsapp_direct`;
 
-            // BUSCA PELO FBP REAL: Ele tenta ler o cookie 5 vezes
+            // BUSCA PELO FBP REAL: Tenta 6 vezes (3 segundos total)
             let fbp = "";
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 6; i++) {
                 fbp = getCookie('_fbp');
                 if (fbp) break; 
-                await new Promise(r => setTimeout(r, 600)); // Espera o Pixel "escrever" o cookie
+                await new Promise(r => setTimeout(r, 500));
             }
 
             const ua = navigator.userAgent.substring(0, 150);
             let ip = '';
             try {
-                const res = await fetch('https://api.ipify.org?format=json');
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
+                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
                 const data = await res.json();
                 ip = data.ip;
-            } catch (e) { ip = ""; }
+                clearTimeout(timeoutId);
+            } catch (e) { ip = "1.1.1.1"; }
 
             const tallyID = "MedLeX";
             const finalURL = `https://tally.so/r/${tallyID}?valor=${valor}&fbc=${fbc}&fbp=${fbp}&ip=${ip}&ua=${encodeURIComponent(ua)}`;
             
-            // Aqui estava o erro: agora garantimos que o elemento existe antes de preencher
+            // VERIFICAÇÃO DE SEGURANÇA: Só tenta setar se o elemento existir
             const iframe = document.getElementById('tally-iframe');
             if (iframe) {
                 iframe.src = finalURL;
             }
         }
 
-        // DISPARO SEGURO: Só roda quando o HTML estiver todo na tela
-        window.onload = carregarTally;
+        // Só dispara quando o DOM estiver 100% carregado
+        if (document.readyState === 'complete') {
+            carregarTally();
+        } else {
+            window.addEventListener('load', carregarTally);
+        }
     </script>
 </body>
 </html>
