@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pagamento Seguro - Agência CW</title>
+    <title>Pagamento Seguro - Checkout</title>
 
     <script>
     !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '26659273070332798');
+    fbq('init', '1229650459358629'); // PIXEL ATUALIZADO DO CLIENTE
     fbq('track', 'PageView');
     </script>
+    <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1229650459358629&ev=PageView&noscript=1"/></noscript>
 
     <style>
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background-color: #ffffff; }
@@ -31,12 +32,23 @@
         async function carregarTally() {
             const urlParams = new URLSearchParams(window.location.search);
             const valor = urlParams.get('valor') || '';
-            const fbclid = urlParams.get('fbclid') || '';
+            const fbclidUrl = urlParams.get('fbclid') || '';
             
-            // FBC Real (se vier de anúncio) ou identificador de WhatsApp
-            const fbc = fbclid ? `fb.1.${Date.now()}.${fbclid}` : `fb.1.${Date.now()}.whatsapp_direct`;
+            // --- LÓGICA PARA DESENTUPIR O CANO (FBC) ---
+            // 1. Tenta recuperar o cookie _fbc (gerado pelo Pixel se o lead veio de anúncio)
+            let fbc = getCookie('_fbc');
 
-            // BUSCA PELO FBP REAL: Tenta 6 vezes (3 segundos total)
+            // 2. Se não tem cookie, mas tem fbclid na URL, monta o FBC manualmente
+            if (!fbc && fbclidUrl) {
+                fbc = `fb.1.${Date.now()}.${fbclidUrl}`;
+            }
+
+            // 3. Fallback final: se nada funcionar, marca como acesso direto
+            if (!fbc) {
+                fbc = `fb.1.${Date.now()}.direct_access`;
+            }
+
+            // --- BUSCA PELO FBP COM RETRY ---
             let fbp = "";
             for (let i = 0; i < 6; i++) {
                 fbp = getCookie('_fbp');
@@ -44,28 +56,29 @@
                 await new Promise(r => setTimeout(r, 500));
             }
 
+            // --- CAPTURA DE IP COM ABORT CONTROLLER (SEGURANÇA) ---
             const ua = navigator.userAgent.substring(0, 150);
             let ip = '';
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2000);
+                const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 segundos de timeout
                 const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
                 const data = await res.json();
                 ip = data.ip;
                 clearTimeout(timeoutId);
-            } catch (e) { ip = "1.1.1.1"; }
+            } catch (e) { 
+                ip = "1.1.1.1"; 
+            }
 
-            const tallyID = "MedLeX";
-            const finalURL = `https://tally.so/r/${tallyID}?valor=${valor}&fbc=${fbc}&fbp=${fbp}&ip=${ip}&ua=${encodeURIComponent(ua)}`;
+            const tallyID = "9q6jMK"; // ID DO TALLY ATUALIZADO
+            const finalURL = `https://tally.so/r/${tallyID}?valor=${valor}&fbc=${encodeURIComponent(fbc)}&fbp=${fbp}&ip=${ip}&ua=${encodeURIComponent(ua)}`;
             
-            // VERIFICAÇÃO DE SEGURANÇA: Só tenta setar se o elemento existir
             const iframe = document.getElementById('tally-iframe');
             if (iframe) {
                 iframe.src = finalURL;
             }
         }
 
-        // Só dispara quando o DOM estiver 100% carregado
         if (document.readyState === 'complete') {
             carregarTally();
         } else {
